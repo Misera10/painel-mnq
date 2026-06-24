@@ -373,15 +373,15 @@ with main_cols[1]:
     else:
         st.info("Aguardando carregamento de velas de mercado...")
 
-    # Economic Calendar only
-    st.markdown("<div class='section-header'>📅 Calendário Econômico</div>", unsafe_allow_html=True)
-    st.markdown(
-        """
-        <iframe src="https://sslecal2.investing.com?columns=exc_flags,exc_currency,exc_importance,exc_actual,exc_forecast,exc_previous&features=datepicker,timezone&countries=5&calType=week&timeZone=12&lang=12&importance=3" 
-                width="100%" height="800" frameborder="0" allowtransparency="true" marginwidth="0" marginheight="0" style="background-color: #0d0f12; border-radius: 8px;"></iframe>
-        """,
-        unsafe_allow_html=True
-    )
+# Economic Calendar only (rendered full-width below the columns)
+st.markdown("<div class='section-header'>📅 Calendário Econômico</div>", unsafe_allow_html=True)
+st.markdown(
+    """
+    <iframe src="https://sslecal2.investing.com?columns=exc_flags,exc_currency,exc_importance,exc_actual,exc_forecast,exc_previous&features=datepicker,timezone&countries=5&calType=week&timeZone=12&lang=12&importance=3" 
+            width="100%" height="800" frameborder="0" allowtransparency="true" marginwidth="0" marginheight="0" style="background-color: #0d0f12; border-radius: 8px;"></iframe>
+    """,
+    unsafe_allow_html=True
+)
 
 # Footer info
 st.markdown("<hr style='border-color: rgba(255,255,255,0.05); margin-top:25px;'>", unsafe_allow_html=True)
