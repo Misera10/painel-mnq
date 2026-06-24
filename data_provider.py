@@ -296,26 +296,65 @@ def get_macro_correlations(period="30d"):
 
 def get_news_feed():
     """
-    Fetch news articles related to NQ=F and format them.
+    Fetch clean economic and finance news from CNBC RSS feeds, sorting by date
+    and filtering out any duplicates or dummy items.
     """
-    try:
-        ticker = yf.Ticker("NQ=F")
-        news = ticker.news
-        formatted_news = []
-        
-        for item in news[:8]:
-            pub_time = datetime.datetime.fromtimestamp(item.get("providerPublishTime", 0))
-            formatted_news.append({
-                "title": item.get("title", "No Title"),
-                "publisher": item.get("publisher", "Unknown Publisher"),
-                "link": item.get("link", "#"),
-                "time": pub_time.strftime("%d/%m/%Y %H:%M"),
-                "summary": item.get("summary", "")
-            })
-        return formatted_news
-    except Exception as e:
-        print(f"Error fetching news: {e}")
-        return []
+    import email.utils
+    
+    feeds = [
+        "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664", # Finance
+        "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=20910258"  # Economy
+    ]
+    
+    formatted_news = []
+    
+    for url in feeds:
+        try:
+            headers = {'User-Agent': 'Mozilla/5.0'}
+            r = requests.get(url, headers=headers, timeout=5)
+            if r.status_code == 200:
+                soup = BeautifulSoup(r.text, 'xml')
+                items = soup.find_all('item')
+                for item in items:
+                    title = item.title.text if item.title else ""
+                    link = item.link.text if item.link else "#"
+                    pub_date_str = item.pubDate.text if item.pubDate else ""
+                    
+                    # Parse RSS date to datetime object
+                    try:
+                        dt = email.utils.parsedate_to_datetime(pub_date_str)
+                        time_str = dt.strftime("%d/%m/%Y %H:%M")
+                        sort_time = dt
+                    except Exception:
+                        time_str = pub_date_str
+                        sort_time = datetime.datetime.min
+                        
+                    # Filter out empty, advertising, or duplicate items
+                    title_clean = title.strip()
+                    if title_clean and "no title" not in title_clean.lower() and len(title_clean) > 5:
+                        formatted_news.append({
+                            "title": title_clean,
+                            "publisher": "CNBC",
+                            "link": link,
+                            "time": time_str,
+                            "sort_time": sort_time
+                        })
+        except Exception as e:
+            print(f"Error fetching/parsing news feed {url}: {e}")
+            
+    # Sort by publication date descending
+    formatted_news.sort(key=lambda x: x["sort_time"], reverse=True)
+    
+    # Remove duplicates
+    seen_titles = set()
+    unique_news = []
+    for item in formatted_news:
+        normalized_title = item["title"].lower()
+        if normalized_title not in seen_titles:
+            seen_titles.add(normalized_title)
+            unique_news.append(item)
+            
+    return unique_news[:8]
 
 def get_economic_calendar():
     """

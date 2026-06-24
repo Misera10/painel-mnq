@@ -253,60 +253,7 @@ with cols[4]:
         st.markdown(get_card_html("Juros EUA 10A (US10Y)", us10y_data["price"], us10y_data["change"], us10y_data["pct_change"], is_yield=True), unsafe_allow_html=True)
 
 
-# 5. SIDEBAR CALCULATOR & RISK MANAGEMENT
-st.sidebar.markdown("<div class='section-header'>🧮 Calculadora de Risco MNQ</div>", unsafe_allow_html=True)
-
-specs = get_mnq_specs()
-st.sidebar.markdown(
-    f"<div style='font-size:0.75rem; background:rgba(255,255,255,0.03); padding:8px; border-radius:5px; border:1px solid rgba(255,255,255,0.05); margin-bottom:10px;'>"
-    f"<b>Especificações MNQ:</b><br>"
-    f"• 1 Ponto = US$ {specs['multiplier']:.2f}<br>"
-    f"• Tick Mínimo = {specs['tick_size']} (US$ {specs['tick_value']:.2f})<br>"
-    f"• Margem Intraday aprox. = US$ {specs['intraday_margin']:.2f}"
-    f"</div>", 
-    unsafe_allow_html=True
-)
-
-account_balance = st.sidebar.number_input("Saldo da Conta (USD)", min_value=100.0, value=10000.0, step=500.0, format="%.2f")
-risk_pct = st.sidebar.slider("Risco por Operação (%)", min_value=0.25, max_value=5.0, value=1.0, step=0.25)
-
-atr_value = 15.0
-if not data["df_15m_nq"].empty:
-    atr_value = data["df_15m_nq"]['ATR'].iloc[-1]
-    
-suggested_stop_points = round_to_tick(atr_value * 1.5)
-
-st.sidebar.markdown(f"<div style='font-size:0.8rem; color:#94a3b8;'>ATR 15m atual: <b>{atr_value:.2f} pts</b><br>Stop Sugerido (1.5x ATR): <b>{suggested_stop_points:.2f} pts</b></div>", unsafe_allow_html=True)
-
-stop_loss_input = st.sidebar.number_input("Stop Loss (Pontos)", min_value=1.0, value=float(suggested_stop_points), step=1.0, format="%.2f")
-
-# Calculate position size
-calc_results = calculate_position_size(account_balance, risk_pct, stop_loss_input)
-
-# Display calculations
-st.sidebar.markdown("#### Resultado da Gestão:")
-contracts = calc_results["contracts_rounded"]
-
-color_contracts = "#00c853" if contracts >= 1 else "#dd2c00"
-
-st.sidebar.markdown(
-    f"<div class='metric-card' style='border-left: 4px solid {color_contracts};'>"
-    f"<div class='metric-title'>Tamanho de Posição Recomendado</div>"
-    f"<div class='metric-value' style='color:{color_contracts};'>{contracts} Contrato(s)</div>"
-    f"<div style='font-size:0.8rem; color:#94a3b8; margin-top:5px;'>"
-    f"• Limite de Risco Operação: <b>US$ {calc_results['max_risk_usd']:.2f} ({risk_pct}%)</b><br>"
-    f"• Perda Real Projetada: <b>US$ {calc_results['actual_risk_usd']:.2f}</b><br>"
-    f"• Risco unitário contrato: <b>US$ {calc_results['risk_per_contract_usd']:.2f}</b><br>"
-    f"• Margem Operacional requerida: <b>US$ {calc_results['required_intraday_margin']:.2f}</b>"
-    f"</div>"
-    f"</div>",
-    unsafe_allow_html=True
-)
-
-if calc_results["required_intraday_margin"] > account_balance:
-    st.sidebar.error("⚠️ Alerta: Margem requerida excede o saldo da conta!")
-
-# TRADING CHECKLIST
+# 5. TRADING CHECKLIST
 st.sidebar.markdown("<div class='section-header'>📋 Checklist do Trader</div>", unsafe_allow_html=True)
 st.sidebar.checkbox("Viés do dia está alinhado com o trade?", value=False)
 st.sidebar.checkbox("Relação Risco/Retorno é favorável (min. 1:1.5)?", value=False)
@@ -345,6 +292,9 @@ with main_cols[0]:
     # Suggested Stop/Targets Table based on current price
     st.markdown("#### Sugestões de Alvos baseados no ATR:")
     if nq_data:
+        atr_value = 15.0
+        if not data["df_15m_nq"].empty:
+            atr_value = data["df_15m_nq"]['ATR'].iloc[-1]
         current_nq_price = nq_data["price"]
         stops_targets = suggest_stops_targets(current_nq_price, atr_value)
         
