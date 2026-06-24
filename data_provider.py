@@ -285,6 +285,8 @@ def get_macro_correlations(period="30d"):
         try:
             df = get_ticker_data(sym, period=period, interval="1d")
             if not df.empty:
+                # Normaliza o índice de datas para timezone-naive para permitir alinhamento correto
+                df.index = df.index.tz_localize(None).normalize()
                 data[name] = df['Close']
         except Exception as e:
             print(f"Error correlation for {name}: {e}")
