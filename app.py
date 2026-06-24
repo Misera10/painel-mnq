@@ -61,10 +61,11 @@ st.markdown("""
     }
     
     .metric-value {
-        font-size: 1.6rem;
+        font-size: 1.35rem;
         font-weight: 700;
         font-family: 'Courier New', Courier, monospace;
         margin-bottom: 2px;
+        white-space: nowrap;
     }
     
     .metric-change {
@@ -218,8 +219,8 @@ def get_card_html(label, price, change, pct_change, is_yield=False, points_mode=
     symbol = "%" if is_yield else ""
     
     if points_mode and not is_yield:
-        price_str = f"{price:,.2f}"
-        change_str = f"{sign}{change:,.2f}"
+        price_str = f"{price:,.0f}"
+        change_str = f"{sign}{change:,.0f}"
     else:
         price_str = f"{price:.3f}" if is_yield else f"{price:.2f}"
         change_str = f"{sign}{change:.3f}" if is_yield else f"{sign}{change:.2f}"
