@@ -177,10 +177,6 @@ def load_all_market_data():
     df_5m_nq_ind = calculate_indicators(df_5m_nq)
     df_daily_nq_ind = calculate_indicators(df_daily_nq)
     
-    # News & Calendar
-    news = get_news_feed()
-    corr = get_macro_correlations()
-    
     # Bias
     bias = calculate_daily_bias(summary, df_daily_nq, df_15m_nq)
     
@@ -189,9 +185,9 @@ def load_all_market_data():
         "df_daily_nq": df_daily_nq_ind,
         "df_15m_nq": df_15m_nq_ind,
         "df_5m_nq": df_5m_nq_ind,
-        "news": news,
+        "news": [],
         "calendar": None,
-        "corr": corr,
+        "corr": pd.DataFrame(),
         "bias": bias
     }
 
@@ -499,58 +495,15 @@ with main_cols[1]:
     else:
         st.info("Aguardando carregamento de velas de mercado...")
 
-    # Macro Analysis (Moved inside main_cols[1] to prevent grid gaps)
-    st.markdown("<div class='section-header'>🌐 Análise Macro, Notícias & Calendário</div>", unsafe_allow_html=True)
-    
-    macro_tab1, macro_tab2, macro_tab3 = st.tabs(["📰 Notícias de Impacto", "📅 Calendário Econômico", "🔗 Correlação Macro"])
-    
-    with macro_tab1:
-        news_items = data["news"]
-        if news_items:
-            for item in news_items:
-                st.markdown(
-                    f"<div style='margin-bottom: 12px; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom:6px;'>"
-                    f"<span style='color: #64748b;'>[{item['time']}] {item['publisher']}</span><br>"
-                    f"<a href='{item['link']}' target='_blank' style='color: #e2e8f0; font-weight: 600; text-decoration: none;'>{item['title']}</a>"
-                    f"</div>",
-                    unsafe_allow_html=True
-                )
-        else:
-            st.info("Nenhuma notícia macroeconômica relevante encontrada.")
-            
-    with macro_tab2:
-        # Widget oficial do Calendário Econômico do Investing.com (Em Português)
-        # Filtrado para eventos dos EUA (countries=5), impacto médio/alto (importance=2,3), visão semanal (calType=week)
-        st.markdown(
-            """
-            <iframe src="https://sslecal.investing.com/?ecoDataOnly=true&columns=time,country,importance,event,actual,forecast,previous&importance=2,3&features=datepicker,timezone&countries=5&calType=week&timeZone=12&lang=12" 
-                    width="100%" height="800" frameborder="0" allowtransparency="true" marginwidth="0" marginheight="0" style="background-color: #0d0f12; border-radius: 8px;"></iframe>
-            """,
-            unsafe_allow_html=True
-        )
-            
-    with macro_tab3:
-        corr_matrix = data["corr"]
-        if not corr_matrix.empty:
-            st.markdown("<p style='font-size:0.8rem; color:#94a3b8;'>Matriz de correlação linear diária dos últimos 30 dias (Nasdaq futures vs Drivers Macro). Valores próximos de -1 indicam correlação invertida; próximos de +1 indicam correlação direta.</p>", unsafe_allow_html=True)
-            
-            def highlight_corr(val):
-                if val == 1.0:
-                    return 'background-color: rgba(255, 255, 255, 0.1); color: #fff;'
-                elif val < -0.5:
-                    return 'background-color: rgba(239, 83, 80, 0.2); color: #ef5350; font-weight: 600;'
-                elif val > 0.5:
-                    return 'background-color: rgba(38, 166, 154, 0.2); color: #26a69a; font-weight: 600;'
-                return ''
-                
-            styler = corr_matrix.style
-            if hasattr(styler, "map"):
-                styled_corr = styler.map(highlight_corr).format("{:.2f}")
-            else:
-                styled_corr = styler.applymap(highlight_corr).format("{:.2f}")
-            st.dataframe(styled_corr, use_container_width=True)
-        else:
-            st.info("Aguardando carregamento de dados históricos macro para calcular correlações.")
+    # Economic Calendar only
+    st.markdown("<div class='section-header'>📅 Calendário Econômico</div>", unsafe_allow_html=True)
+    st.markdown(
+        """
+        <iframe src="https://sslecal2.investing.com?columns=exc_flags,exc_currency,exc_importance,exc_actual,exc_forecast,exc_previous&features=datepicker,timezone&countries=5&calType=week&timeZone=12&lang=12" 
+                width="100%" height="800" frameborder="0" allowtransparency="true" marginwidth="0" marginheight="0" style="background-color: #0d0f12; border-radius: 8px;"></iframe>
+        """,
+        unsafe_allow_html=True
+    )
 
 # Footer info
 st.markdown("<hr style='border-color: rgba(255,255,255,0.05); margin-top:25px;'>", unsafe_allow_html=True)
