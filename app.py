@@ -253,15 +253,7 @@ with cols[4]:
         st.markdown(get_card_html("Juros EUA 10A (US10Y)", us10y_data["price"], us10y_data["change"], us10y_data["pct_change"], is_yield=True), unsafe_allow_html=True)
 
 
-# 5. TRADING CHECKLIST
-st.sidebar.markdown("<div class='section-header'>📋 Checklist do Trader</div>", unsafe_allow_html=True)
-st.sidebar.checkbox("Viés do dia está alinhado com o trade?", value=False)
-st.sidebar.checkbox("Relação Risco/Retorno é favorável (min. 1:1.5)?", value=False)
-st.sidebar.checkbox("Sem notícias de alto impacto nos próximos 30min?", value=False)
-st.sidebar.checkbox("Stop Loss já cadastrado/posicionado?", value=False)
-
-
-# 6. MAIN CONTENT SECTION 1: VIÉS DO DIA & GRÁFICOS
+# 5. MAIN CONTENT SECTION: VIÉS DO DIA & GRÁFICOS
 main_cols = st.columns([1, 2])
 
 with main_cols[0]:
@@ -322,6 +314,96 @@ with main_cols[0]:
                     for rr, details in stops_targets["short"]["targets"].items()
                 ])
                 st.table(tgt_df_short)
+
+    # Micro Analysis (Moved inside main_cols[0] to prevent grid gaps)
+    st.markdown("<div class='section-header'>🔬 Análise Micro & Níveis Técnicos</div>", unsafe_allow_html=True)
+    
+    micro_tab1, micro_tab2 = st.tabs(["📍 Pontos de Pivô Diários", "📊 Alinhamento de Tendência"])
+    
+    with micro_tab1:
+        pivots = calculate_pivot_points(data["df_daily_nq"])
+        if pivots and nq_data:
+            current_nq = nq_data["price"]
+            
+            pivots_data = [
+                {"Nível": "Resistência 3 (R3)", "Preço": f"{pivots['R3']:.2f}", "Status": "Acima" if current_nq < pivots['R3'] else "Rompido"},
+                {"Nível": "Resistência 2 (R2)", "Preço": f"{pivots['R2']:.2f}", "Status": "Acima" if current_nq < pivots['R2'] else "Rompido"},
+                {"Nível": "Resistência 1 (R1)", "Preço": f"{pivots['R1']:.2f}", "Status": "Acima" if current_nq < pivots['R1'] else "Rompido"},
+                {"Nível": "Pivot Point (PP)", "Preço": f"{pivots['PP']:.2f}", "Status": "Acima" if current_nq < pivots['PP'] else "Abaixo"},
+                {"Nível": "Suporte 1 (S1)", "Preço": f"{pivots['S1']:.2f}", "Status": "Abaixo" if current_nq > pivots['S1'] else "Rompido"},
+                {"Nível": "Suporte 2 (S2)", "Preço": f"{pivots['S2']:.2f}", "Status": "Abaixo" if current_nq > pivots['S2'] else "Rompido"},
+                {"Nível": "Suporte 3 (S3)", "Preço": f"{pivots['S3']:.2f}", "Status": "Abaixo" if current_nq > pivots['S3'] else "Rompido"}
+            ]
+            p_df = pd.DataFrame(pivots_data)
+            st.table(p_df)
+            st.markdown(
+                f"<div style='font-size:0.8rem; color:#94a3b8; text-align:center;'>Preço Atual: <b>{current_nq:,.2f}</b> | "
+                f"Distância do Pivot: <b>{current_nq - pivots['PP']:.2f} pts</b></div>",
+                unsafe_allow_html=True
+            )
+            
+    with micro_tab2:
+        m5_latest = data["df_5m_nq"].iloc[-1]
+        m15_latest = data["df_15m_nq"].iloc[-1]
+        daily_latest = data["df_daily_nq"].iloc[-1]
+        
+        df_1h_temp = get_ticker_data("NQ=F", period="10d", interval="1h")
+        df_1h_temp = calculate_indicators(df_1h_temp)
+        h1_latest = df_1h_temp.iloc[-1] if not df_1h_temp.empty else None
+        
+        def eval_trend(close, ema9, ema21, ema50):
+            if close > ema9 > ema21 > ema50:
+                return "FORTE ALTA 🟢", "#00c853"
+            elif close > ema21:
+                return "ALTA 📈", "#aeea00"
+            elif close < ema9 < ema21 < ema50:
+                return "FORTE BAIXA 🔴", "#dd2c00"
+            elif close < ema21:
+                return "BAIXA 📉", "#ff6d00"
+            else:
+                return "LATERAL / NEUTRO 🟡", "#ffd600"
+                
+        t_5m, c_5m = eval_trend(m5_latest['Close'], m5_latest['EMA9'], m5_latest['EMA21'], m5_latest['EMA50'])
+        t_15m, c_15m = eval_trend(m15_latest['Close'], m15_latest['EMA9'], m15_latest['EMA21'], m15_latest['EMA50'])
+        
+        if h1_latest is not None:
+            t_1h, c_1h = eval_trend(h1_latest['Close'], h1_latest['EMA9'], h1_latest['EMA21'], h1_latest['EMA50'])
+        else:
+            t_1h, c_1h = "Sem Dados", "#808080"
+            
+        t_d1, c_d1 = eval_trend(daily_latest['Close'], daily_latest['EMA9'], daily_latest['EMA21'], daily_latest['EMA50'])
+        
+        st.markdown(
+            f"<div style='font-size:0.9rem; margin-bottom: 10px;'>"
+            f"<b>Alinhamento de Médias Exponenciais:</b>"
+            f"</div>"
+            f"<div style='display: grid; grid-template-columns: 1fr 1fr; gap: 8px;'>"
+            f"<div class='metric-card' style='border-left:4px solid {c_5m}; margin-bottom:0;'>Grafico 5 Minutos (M5):<br><span style='font-weight:700; color:{c_5m};'>{t_5m}</span></div>"
+            f"<div class='metric-card' style='border-left:4px solid {c_15m}; margin-bottom:0;'>Grafico 15 Minutos (M15):<br><span style='font-weight:700; color:{c_15m};'>{t_15m}</span></div>"
+            f"<div class='metric-card' style='border-left:4px solid {c_1h}; margin-bottom:0;'>Grafico 1 Hora (H1):<br><span style='font-weight:700; color:{c_1h};'>{t_1h}</span></div>"
+            f"<div class='metric-card' style='border-left:4px solid {c_d1}; margin-bottom:0;'>Grafico Diario (D1):<br><span style='font-weight:700; color:{c_d1};'>{t_d1}</span></div>"
+            f"</div>",
+            unsafe_allow_html=True
+        )
+        
+        st.markdown("##### Indicadores Auxiliares (15m):")
+        rsi_val = m15_latest['RSI']
+        macd_val = m15_latest['MACD_Hist']
+        
+        rsi_color = "#ffd600"
+        if rsi_val > 70: rsi_color = "#dd2c00"
+        elif rsi_val < 30: rsi_color = "#00c853"
+        elif 50 <= rsi_val <= 70: rsi_color = "#aeea00"
+        
+        macd_color = "#00c853" if macd_val > 0 else "#dd2c00"
+        
+        st.markdown(
+            f"<div style='display:flex; justify-content: space-around; margin-top:10px;'>"
+            f"<div style='text-align:center;'>RSI (14): <br><b style='color:{rsi_color}; font-size:1.2rem;'>{rsi_val:.2f}</b></div>"
+            f"<div style='text-align:center;'>Hist. MACD: <br><b style='color:{macd_color}; font-size:1.2rem;'>{macd_val:.2f}</b></div>"
+            f"</div>",
+            unsafe_allow_html=True
+        )
 
 with main_cols[1]:
     st.markdown("<div class='section-header'>📈 Gráfico Interativo Nasdaq Futuro (NQ)</div>", unsafe_allow_html=True)
@@ -417,113 +499,7 @@ with main_cols[1]:
     else:
         st.info("Aguardando carregamento de velas de mercado...")
 
-
-# 7. SECTION 2: MICRO & MACRO ANALYSIS
-sec2_cols = st.columns([1, 1])
-
-with sec2_cols[0]:
-    st.markdown("<div class='section-header'>🔬 Análise Micro & Níveis Técnicos</div>", unsafe_allow_html=True)
-    
-    micro_tab1, micro_tab2 = st.tabs(["📍 Pontos de Pivô Diários", "📊 Alinhamento de Tendência"])
-    
-    with micro_tab1:
-        pivots = calculate_pivot_points(data["df_daily_nq"])
-        if pivots and nq_data:
-            current_nq = nq_data["price"]
-            
-            pivots_data = [
-                {"Nível": "Resistência 3 (R3)", "Preço": f"{pivots['R3']:.2f}", "Status": "Acima" if current_nq < pivots['R3'] else "Rompido"},
-                {"Nível": "Resistência 2 (R2)", "Preço": f"{pivots['R2']:.2f}", "Status": "Acima" if current_nq < pivots['R2'] else "Rompido"},
-                {"Nível": "Resistência 1 (R1)", "Preço": f"{pivots['R1']:.2f}", "Status": "Acima" if current_nq < pivots['R1'] else "Rompido"},
-                {"Nível": "Pivot Point (PP)", "Preço": f"{pivots['PP']:.2f}", "Status": "Acima" if current_nq < pivots['PP'] else "Abaixo"},
-                {"Nível": "Suporte 1 (S1)", "Preço": f"{pivots['S1']:.2f}", "Status": "Abaixo" if current_nq > pivots['S1'] else "Rompido"},
-                {"Nível": "Suporte 2 (S2)", "Preço": f"{pivots['S2']:.2f}", "Status": "Abaixo" if current_nq > pivots['S2'] else "Rompido"},
-                {"Nível": "Suporte 3 (S3)", "Preço": f"{pivots['S3']:.2f}", "Status": "Abaixo" if current_nq > pivots['S3'] else "Rompido"}
-            ]
-            p_df = pd.DataFrame(pivots_data)
-            
-            def color_pivots(row):
-                val = row["Nível"]
-                if "R" in val:
-                    return ["color: #ef5350"] * len(row)
-                elif "S" in val:
-                    return ["color: #26a69a"] * len(row)
-                else:
-                    return ["color: #fbbf24; font-weight: 700"] * len(row)
-            
-            st.table(p_df)
-            st.markdown(
-                f"<div style='font-size:0.8rem; color:#94a3b8; text-align:center;'>Preço Atual: <b>{current_nq:,.2f}</b> | "
-                f"Distância do Pivot: <b>{current_nq - pivots['PP']:.2f} pts</b></div>",
-                unsafe_allow_html=True
-            )
-            
-    with micro_tab2:
-        m5_latest = data["df_5m_nq"].iloc[-1]
-        m15_latest = data["df_15m_nq"].iloc[-1]
-        daily_latest = data["df_daily_nq"].iloc[-1]
-        
-        df_1h_temp = get_ticker_data("NQ=F", period="10d", interval="1h")
-        df_1h_temp = calculate_indicators(df_1h_temp)
-        h1_latest = df_1h_temp.iloc[-1] if not df_1h_temp.empty else None
-        
-        trend_status = []
-        
-        def eval_trend(close, ema9, ema21, ema50):
-            if close > ema9 > ema21 > ema50:
-                return "FORTE ALTA 🟢", "#00c853"
-            elif close > ema21:
-                return "ALTA 📈", "#aeea00"
-            elif close < ema9 < ema21 < ema50:
-                return "FORTE BAIXA 🔴", "#dd2c00"
-            elif close < ema21:
-                return "BAIXA 📉", "#ff6d00"
-            else:
-                return "LATERAL / NEUTRO 🟡", "#ffd600"
-                
-        t_5m, c_5m = eval_trend(m5_latest['Close'], m5_latest['EMA9'], m5_latest['EMA21'], m5_latest['EMA50'])
-        t_15m, c_15m = eval_trend(m15_latest['Close'], m15_latest['EMA9'], m15_latest['EMA21'], m15_latest['EMA50'])
-        
-        if h1_latest is not None:
-            t_1h, c_1h = eval_trend(h1_latest['Close'], h1_latest['EMA9'], h1_latest['EMA21'], h1_latest['EMA50'])
-        else:
-            t_1h, c_1h = "Sem Dados", "#808080"
-            
-        t_d1, c_d1 = eval_trend(daily_latest['Close'], daily_latest['EMA9'], daily_latest['EMA21'], daily_latest['EMA50'])
-        
-        st.markdown(
-            f"<div style='font-size:0.9rem; margin-bottom: 10px;'>"
-            f"<b>Alinhamento de Médias Exponenciais:</b>"
-            f"</div>"
-            f"<div style='display: grid; grid-template-columns: 1fr 1fr; gap: 8px;'>"
-            f"<div class='metric-card' style='border-left:4px solid {c_5m}; margin-bottom:0;'>Grafico 5 Minutos (M5):<br><span style='font-weight:700; color:{c_5m};'>{t_5m}</span></div>"
-            f"<div class='metric-card' style='border-left:4px solid {c_15m}; margin-bottom:0;'>Grafico 15 Minutos (M15):<br><span style='font-weight:700; color:{c_15m};'>{t_15m}</span></div>"
-            f"<div class='metric-card' style='border-left:4px solid {c_1h}; margin-bottom:0;'>Grafico 1 Hora (H1):<br><span style='font-weight:700; color:{c_1h};'>{t_1h}</span></div>"
-            f"<div class='metric-card' style='border-left:4px solid {c_d1}; margin-bottom:0;'>Grafico Diario (D1):<br><span style='font-weight:700; color:{c_d1};'>{t_d1}</span></div>"
-            f"</div>",
-            unsafe_allow_html=True
-        )
-        
-        st.markdown("##### Indicadores Auxiliares (15m):")
-        rsi_val = m15_latest['RSI']
-        macd_val = m15_latest['MACD_Hist']
-        
-        rsi_color = "#ffd600"
-        if rsi_val > 70: rsi_color = "#dd2c00"
-        elif rsi_val < 30: rsi_color = "#00c853"
-        elif 50 <= rsi_val <= 70: rsi_color = "#aeea00"
-        
-        macd_color = "#00c853" if macd_val > 0 else "#dd2c00"
-        
-        st.markdown(
-            f"<div style='display:flex; justify-content: space-around; margin-top:10px;'>"
-            f"<div style='text-align:center;'>RSI (14): <br><b style='color:{rsi_color}; font-size:1.2rem;'>{rsi_val:.2f}</b></div>"
-            f"<div style='text-align:center;'>Hist. MACD: <br><b style='color:{macd_color}; font-size:1.2rem;'>{macd_val:.2f}</b></div>"
-            f"</div>",
-            unsafe_allow_html=True
-        )
-
-with sec2_cols[1]:
+    # Macro Analysis (Moved inside main_cols[1] to prevent grid gaps)
     st.markdown("<div class='section-header'>🌐 Análise Macro, Notícias & Calendário</div>", unsafe_allow_html=True)
     
     macro_tab1, macro_tab2, macro_tab3 = st.tabs(["📰 Notícias de Impacto", "📅 Calendário Econômico", "🔗 Correlação Macro"])
