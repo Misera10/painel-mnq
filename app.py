@@ -373,18 +373,14 @@ with main_cols[1]:
     else:
         st.info("Aguardando carregamento de velas de mercado...")
 
-# Economic Calendar (dark-themed Investing.com widget, filtered to current week + high importance only)
+# Economic Calendar (Investing.com widget with CSS dark-mode inversion, current week + high importance)
 st.markdown("<div class='section-header'>📅 Calendário Econômico da Semana</div>", unsafe_allow_html=True)
 
 import streamlit.components.v1 as components
 
-# Build the Investing.com calendar with dark color parameters matching our panel theme
-# Colors are URL-encoded: %23 = #
-# ecoDayBackground: day-header row background
-# defaultFont: general text color
-# ecoDayFontColor: day-header text color
-# borderColor / innerBorderColor: table borders
-# evenRowBackground / oddRowBackground: alternating row backgrounds
+# Use the standard Investing.com iframe but apply CSS filter: invert + hue-rotate
+# to force a premium dark mode that integrates seamlessly with the panel.
+# This works because the iframe is white by default — inverting it makes it dark.
 cal_url = (
     "https://sslecal2.investing.com?"
     "columns=exc_flags,exc_currency,exc_importance,exc_actual,exc_forecast,exc_previous"
@@ -394,21 +390,14 @@ cal_url = (
     "&timeZone=12"
     "&lang=12"
     "&importance=3"
-    "&ecoDayBackground=%2312161c"
-    "&ecoDayFontColor=%2338bdf8"
-    "&defaultFont=%23e2e8f0"
-    "&borderColor=%231e222d"
-    "&innerBorderColor=%231e222d"
-    "&evenRowBackground=%230d0f12"
-    "&oddRowBackground=%2311141a"
 )
 
 cal_html = f"""
-<div style="background-color: #0d0f12; border-radius: 8px; overflow: hidden; padding: 0;">
+<div style="background-color: #0d0f12; border-radius: 10px; overflow: hidden; padding: 0;">
     <iframe src="{cal_url}"
             width="100%" height="500" frameborder="0"
             allowtransparency="true" marginwidth="0" marginheight="0"
-            style="border-radius: 8px; display: block;">
+            style="border-radius: 10px; display: block; filter: invert(0.88) hue-rotate(180deg); -webkit-filter: invert(0.88) hue-rotate(180deg);">
     </iframe>
 </div>
 """
