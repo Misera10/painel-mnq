@@ -373,28 +373,47 @@ with main_cols[1]:
     else:
         st.info("Aguardando carregamento de velas de mercado...")
 
-# Economic Calendar only (rendered full-width below the columns using TradingView Dark Theme)
-st.markdown("<div class='section-header'>📅 Calendário Econômico</div>", unsafe_allow_html=True)
+# Economic Calendar (dark-themed Investing.com widget, filtered to current week + high importance only)
+st.markdown("<div class='section-header'>📅 Calendário Econômico da Semana</div>", unsafe_allow_html=True)
 
 import streamlit.components.v1 as components
 
-tradingview_html = """
-<div class="tradingview-widget-container" style="background-color: #0d0f12; border-radius: 8px; overflow: hidden; padding: 5px;">
-  <div class="tradingview-widget-container__widget"></div>
-  <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
-  {
-  "colorTheme": "dark",
-  "isTransparent": true,
-  "width": "100%",
-  "height": "600",
-  "locale": "pt",
-  "importanceFilter": "1",
-  "currencyFilter": "USD"
-}
-  </script>
+# Build the Investing.com calendar with dark color parameters matching our panel theme
+# Colors are URL-encoded: %23 = #
+# ecoDayBackground: day-header row background
+# defaultFont: general text color
+# ecoDayFontColor: day-header text color
+# borderColor / innerBorderColor: table borders
+# evenRowBackground / oddRowBackground: alternating row backgrounds
+cal_url = (
+    "https://sslecal2.investing.com?"
+    "columns=exc_flags,exc_currency,exc_importance,exc_actual,exc_forecast,exc_previous"
+    "&features=datepicker,timezone"
+    "&countries=5"
+    "&calType=week"
+    "&timeZone=12"
+    "&lang=12"
+    "&importance=3"
+    "&ecoDayBackground=%2312161c"
+    "&ecoDayFontColor=%2338bdf8"
+    "&defaultFont=%23e2e8f0"
+    "&borderColor=%231e222d"
+    "&innerBorderColor=%231e222d"
+    "&evenRowBackground=%230d0f12"
+    "&oddRowBackground=%2311141a"
+)
+
+cal_html = f"""
+<div style="background-color: #0d0f12; border-radius: 8px; overflow: hidden; padding: 0;">
+    <iframe src="{cal_url}"
+            width="100%" height="500" frameborder="0"
+            allowtransparency="true" marginwidth="0" marginheight="0"
+            style="border-radius: 8px; display: block;">
+    </iframe>
 </div>
 """
-components.html(tradingview_html, height=630)
+components.html(cal_html, height=520)
+
 
 
 # Footer info
