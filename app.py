@@ -179,7 +179,6 @@ def load_all_market_data():
     
     # News & Calendar
     news = get_news_feed()
-    calendar = get_economic_calendar()
     corr = get_macro_correlations()
     
     # Bias
@@ -191,7 +190,7 @@ def load_all_market_data():
         "df_15m_nq": df_15m_nq_ind,
         "df_5m_nq": df_5m_nq_ind,
         "news": news,
-        "calendar": calendar,
+        "calendar": None,
         "corr": corr,
         "bias": bias
     }
@@ -520,27 +519,15 @@ with main_cols[1]:
             st.info("Nenhuma notícia macroeconômica relevante encontrada.")
             
     with macro_tab2:
-        calendar_events = data["calendar"]
-        if calendar_events:
-            for event in calendar_events:
-                impact = event["impact"]
-                badge_color = "rgba(239, 83, 80, 0.25)" if "Alta" in impact or "Máxima" in impact else "rgba(251, 191, 36, 0.25)"
-                border_color = "#ef5350" if "Alta" in impact or "Máxima" in impact else "#fbbf24"
-                
-                st.markdown(
-                    f"<div style='display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; padding: 6px 10px; margin-bottom: 6px; background: rgba(255,255,255,0.01); border-left: 3px solid {border_color};'>"
-                    f"<div>"
-                    f"<span style='color: #94a3b8; font-weight:500;'>{event['day']} ({event['time']})</span><br>"
-                    f"<span style='color: #e2e8f0; font-weight:600;'>{event['event']}</span>"
-                    f"</div>"
-                    f"<div style='background: {badge_color}; border: 1px solid {border_color}; border-radius: 4px; padding: 2px 6px; font-size:0.7rem; font-weight: 700; color:#e2e8f0;'>"
-                    f"{impact.upper()}"
-                    f"</div>"
-                    f"</div>",
-                    unsafe_allow_html=True
-                )
-        else:
-            st.info("Nenhum evento econômico agendado.")
+        # Widget oficial do Calendário Econômico do Investing.com (Em Português)
+        # Filtrado para eventos dos EUA (countries=5), impacto médio/alto (importance=2,3), visão semanal (calType=week)
+        st.markdown(
+            """
+            <iframe src="https://sslecal.investing.com/?ecoDataOnly=true&columns=time,country,importance,event,actual,forecast,previous&importance=2,3&features=datepicker,timezone&countries=5&calType=week&timeZone=12&lang=12" 
+                    width="100%" height="800" frameborder="0" allowtransparency="true" marginwidth="0" marginheight="0" style="background-color: #0d0f12; border-radius: 8px;"></iframe>
+            """,
+            unsafe_allow_html=True
+        )
             
     with macro_tab3:
         corr_matrix = data["corr"]
